@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a1030">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>AWEL Remote</title>
+<style>
+  :root{
+    --bg:#0a1030; --card:#121a45; --card2:#1a2460; --line:#2a3680;
+    --gold:#f5b301; --text:#fff; --mute:#93a3dc;
+    --ok:#37d67a; --warn:#ffb300; --bad:#ff5252; --red:#e8001d;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  html,body{ background:var(--bg); color:var(--text); }
+  body{ font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif; font-size:16px;
+    min-height:100vh; padding-bottom:calc(120px + env(safe-area-inset-bottom)); }
+  button,input,select,textarea{ font:inherit; color:inherit; }
+  button{ cursor:pointer; border:0; }
+
+  /* ---------- header ---------- */
+  header{ position:sticky; top:0; z-index:20; background:var(--bg); padding:calc(10px + env(safe-area-inset-top)) 16px 0;
+    border-bottom:1px solid var(--line); }
+  .hrow{ display:flex; align-items:center; gap:10px; }
+  .brand{ font-weight:900; font-size:20px; letter-spacing:2px; color:var(--gold); }
+  .brand small{ color:#fff; font-size:11px; letter-spacing:4px; margin-left:6px; font-weight:700; }
+  .grow{ flex:1; }
+  .pill{ display:inline-flex; align-items:center; gap:7px; font-size:13px; font-weight:600; padding:6px 12px;
+    border-radius:20px; background:var(--card); border:1px solid var(--line); }
+  .dot{ width:10px; height:10px; border-radius:50%; background:var(--mute); }
+  .pill.ok .dot{ background:var(--ok); box-shadow:0 0 8px var(--ok); }
+  .pill.warn .dot{ background:var(--warn); }
+  .pill.bad .dot{ background:var(--bad); }
+  .gear{ width:40px; height:40px; border-radius:12px; background:var(--card); border:1px solid var(--line); font-size:20px; }
+  nav{ display:flex; gap:6px; margin-top:10px; }
+  nav button{ flex:1; padding:12px 2px; background:none; color:var(--mute); font-weight:800; letter-spacing:1px;
+    font-size:13px; border-bottom:3px solid transparent; }
+  nav button.on{ color:var(--gold); border-color:var(--gold); }
+
+  main{ padding:16px; max-width:640px; margin:0 auto; }
+  section{ display:none; }
+  section.on{ display:block; }
+  h2{ font-size:12px; letter-spacing:2px; color:var(--mute); margin:20px 0 10px; text-transform:uppercase; }
+  h2:first-child{ margin-top:4px; }
+
+  /* ---------- chips ---------- */
+  .chips{ display:flex; flex-wrap:wrap; gap:8px; }
+  .chip{ padding:12px 16px; min-height:48px; border-radius:14px; background:var(--card); border:2px solid var(--line);
+    font-weight:800; font-size:15px; color:#fff; }
+  .chip.on{ border-color:#fff; box-shadow:0 0 0 3px rgba(255,255,255,.18); }
+  .chip.state.on{ color:#fff; }
+  .chip small{ display:block; font-weight:600; font-size:12px; color:var(--mute); margin-top:2px; font-variant-numeric:tabular-nums; }
+  .chip.slot{ min-width:92px; text-align:center; font-variant-numeric:tabular-nums; }
+  .chip.slot.on{ background:var(--gold); color:#2a1a00; border-color:var(--gold); }
+  .chip.slot.on small{ color:#5a3800; }
+  .chip.slot.filled small{ color:var(--ok); }
+  .chip.slot.on.filled small{ color:#164b2a; }
+
+  /* ---------- number inputs ---------- */
+  .picks{ display:grid; grid-template-columns:1fr; gap:12px; }
+  .pick{ background:var(--card); border:2px solid var(--line); border-radius:18px; padding:12px 14px 14px; }
+  .pick label{ display:block; font-weight:800; letter-spacing:2px; font-size:13px; margin-bottom:8px; }
+  .pick.p3{ border-color:#2f80ff; } .pick.p3 label{ color:#6fa8ff; }
+  .pick.p4{ border-color:#22c55e; } .pick.p4 label{ color:#5fe08e; }
+  .big{ width:100%; background:#fff; color:#0a1a4a; border:0; border-radius:14px; text-align:center;
+    font-size:54px; font-weight:900; letter-spacing:.35em; padding:10px 0 10px .35em; outline:none; font-variant-numeric:tabular-nums; }
+  .big:focus{ box-shadow:0 0 0 4px var(--gold); }
+  .big::placeholder{ color:#c7cde0; }
+  .linkbtn{ background:none; color:var(--mute); text-decoration:underline; font-size:14px; padding:10px 4px; }
+
+  /* ---------- action bar ---------- */
+  .bar{ position:fixed; left:0; right:0; bottom:0; z-index:30; padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+    background:linear-gradient(180deg,rgba(10,16,48,0),var(--bg) 22%); display:none; }
+  .bar.on{ display:block; }
+  .bar .in{ max-width:640px; margin:0 auto; display:flex; gap:10px; }
+  .btn{ padding:16px 18px; border-radius:16px; font-weight:900; letter-spacing:1px; font-size:16px; }
+  .btn.send{ flex:1; background:linear-gradient(180deg,#ff3b3b,#c00f0f); color:#fff; font-size:20px; box-shadow:0 4px 0 rgba(0,0,0,.4); }
+  .btn.ghost{ background:var(--card2); border:2px solid var(--line); font-size:14px; }
+  .btn.gold{ background:var(--gold); color:#2a1a00; }
+  .btn.danger{ background:#4a1020; border:2px solid var(--bad); color:#ffb4b4; }
+  .btn:active{ transform:translateY(2px); }
+  .btn[disabled]{ opacity:.45; }
+
+  /* ---------- cards / forms ---------- */
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:16px; overflow:hidden; margin-bottom:12px; }
+  .pad{ padding:14px; }
+  .rhead{ padding:9px 14px; font-weight:900; letter-spacing:1px; }
+  .rrow{ display:flex; gap:8px; padding:8px 12px; }
+  .rrow:last-child{ padding-bottom:12px; }
+  .rrow .num{ flex:1; min-width:0; }
+  .rrow .time{ width:96px; }
+  .fld{ width:100%; background:#0a1030; border:2px solid var(--line); border-radius:12px; padding:12px; outline:none;
+    font-size:17px; font-weight:700; }
+  .fld:focus{ border-color:var(--gold); }
+  .rrow .num{ background:#fff; color:#0a1a4a; border-color:#fff; text-align:center; font-size:20px; font-weight:900; }
+  .rrow .time{ background:linear-gradient(180deg,#ffd34d,#f5a623); color:#5a3200; border-color:#f5a623; text-align:center; }
+  textarea.fld{ min-height:84px; resize:vertical; font-weight:600; }
+  .row{ display:flex; gap:8px; align-items:center; }
+  .row > *{ min-width:0; }
+  .row .fld{ width:auto; flex:1; }
+  .row .btn{ flex:none; padding:16px 14px; }
+  .hint{ color:var(--mute); font-size:13px; line-height:1.45; margin-top:8px; }
+  .cdbig{ font-size:44px; font-weight:900; text-align:center; font-variant-numeric:tabular-nums; margin:2px 0 12px; letter-spacing:2px; }
+  .cdbig.done{ color:var(--bad); }
+  input[type=color]{ width:64px; height:48px; padding:3px; border-radius:12px; border:2px solid var(--line); background:#0a1030; }
+
+  .crow{ display:flex; align-items:center; gap:10px; padding:9px 14px; border-top:1px solid var(--line); }
+  .crow:first-child{ border-top:0; }
+  .crow .clab{ flex:1; font-weight:700; font-size:15px; line-height:1.25; }
+  .crow input[type=color]{ width:56px; height:42px; flex:none; }
+  .crow .rst{ width:42px; height:42px; border-radius:12px; background:var(--card2); border:1px solid var(--line); font-size:18px; opacity:.35; flex:none; }
+  .crow .rst.on{ opacity:1; border-color:var(--gold); }
+
+  /* ---------- setup + toast ---------- */
+  #setup{ display:none; background:var(--card); border:2px solid var(--gold); border-radius:16px; padding:14px; margin-bottom:16px; }
+  #setup.on{ display:block; }
+  #setup label{ display:block; font-size:12px; letter-spacing:1px; color:var(--mute); margin:12px 0 6px; text-transform:uppercase; }
+  details{ margin-top:12px; color:var(--mute); font-size:13px; }
+  summary{ cursor:pointer; padding:6px 0; color:#fff; font-weight:700; }
+  pre{ background:#060a22; border:1px solid var(--line); border-radius:10px; padding:10px; overflow:auto; font-size:12px; color:#cfd8ff; margin-top:6px; }
+  #toast{ position:fixed; left:50%; top:calc(78px + env(safe-area-inset-top)); transform:translate(-50%,-20px); opacity:0; z-index:50;
+    background:#111a4a; border:2px solid var(--line); padding:12px 18px; border-radius:14px; font-weight:800; font-size:15px;
+    pointer-events:none; transition:.2s; max-width:92vw; text-align:center; }
+  #toast.show{ opacity:1; transform:translate(-50%,0); }
+  #toast.ok{ border-color:var(--ok); } #toast.warn{ border-color:var(--warn); } #toast.bad{ border-color:var(--bad); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hrow">
+    <div class="brand">AWEL<small>REMOTE</small></div>
+    <div class="grow"></div>
+    <div class="pill" id="status"><span class="dot"></span><span id="statusTxt">Not set up</span></div>
+    <button class="gear" id="gear" aria-label="Settings">⚙</button>
+  </div>
+  <nav id="tabs">
+    <button data-t="send" class="on">SEND</button>
+    <button data-t="results">RESULTS</button>
+    <button data-t="board">BOARD</button>
+    <button data-t="colors">COLORS</button>
+  </nav>
+</header>
+
+<div id="toast"></div>
+
+<main>
+  <!-- ======== setup ======== -->
+  <div id="setup">
+    <h2 style="margin-top:0">Connect to your board</h2>
+    <label for="fbUrl">Firebase Database URL</label>
+    <input class="fld" id="fbUrl" placeholder="https://your-project-default-rtdb.firebaseio.com" autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="url">
+    <label for="fbCh">Channel (secret name — same one as the board)</label>
+    <input class="fld" id="fbCh" placeholder="awel1" autocapitalize="off" autocorrect="off" spellcheck="false">
+    <div class="row" style="margin-top:14px"><button class="btn gold" id="saveSetup" style="flex:1">SAVE &amp; CONNECT</button></div>
+    <details>
+      <summary>Firebase rules needed (one time)</summary>
+      <p class="hint">Firebase console → Realtime Database → Rules. <b>Add</b> this <code>boards</code> block next to what you already have — don't replace your other rules, and keep the rest of your database locked as it is today.</p>
+<pre>{
+  "rules": {
+    "boards": {
+      "$channel": { ".read": true, ".write": true }
+    }
+  }
+}</pre>
+      <p class="hint">Anyone who knows the channel name can change your board, so make it long and random (example: <code>awel-k7x2q9m4p</code>).</p>
+    </details>
+  </div>
+
+  <!-- ======== SEND ======== -->
+  <section id="t-send" class="on">
+    <h2>1 · State</h2>
+    <div class="chips" id="stateChips"></div>
+
+    <h2>2 · Draw</h2>
+    <div class="chips" id="slotChips"></div>
+
+    <h2>3 · Numbers</h2>
+    <div class="picks">
+      <div class="pick p3"><label for="p3">PICK 3</label>
+        <input class="big" id="p3" inputmode="numeric" pattern="[0-9]*" maxlength="3" placeholder="•••" autocomplete="off"></div>
+      <div class="pick p4"><label for="p4">PICK 4</label>
+        <input class="big" id="p4" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" autocomplete="off"></div>
+    </div>
+    <button class="linkbtn" id="clearDraw">Clear this draw (back to ---)</button>
+  </section>
+
+  <!-- ======== RESULTS ======== -->
+  <section id="t-results">
+    <p class="hint" style="margin:0 0 12px">Every card on the board. Tap a number or a time to edit it — it goes live as you type.</p>
+    <div id="results"></div>
+  </section>
+
+  <!-- ======== BOARD ======== -->
+  <section id="t-board">
+    <h2>Countdown</h2>
+    <div class="card pad">
+      <div class="cdbig" id="cdPrev">--:--</div>
+      <div class="chips" id="cdChips"></div>
+      <div class="row" style="margin-top:10px">
+        <input class="fld" id="cdMin" type="number" inputmode="numeric" min="1" max="999" placeholder="Minutes">
+        <button class="btn gold" id="cdStart">START</button>
+        <button class="btn ghost" id="cdStop">STOP</button>
+      </div>
+    </div>
+
+    <h2>Scrolling banner</h2>
+    <div class="card pad">
+      <textarea class="fld" id="tickerTxt"></textarea>
+      <div class="row" style="margin-top:10px"><button class="btn gold" id="tickerSave" style="flex:1">UPDATE BANNER</button></div>
+    </div>
+
+    <h2>Red button text</h2>
+    <div class="card pad">
+      <div class="row"><input class="fld" id="subTxt"><button class="btn gold" id="subSave">SET</button></div>
+    </div>
+
+    <h2>Main card title</h2>
+    <div class="card pad">
+      <input class="fld" id="titleTxt" placeholder="REZILTA FLORIDA">
+      <input class="fld" id="subTitleTxt" placeholder="Florida Result" style="margin-top:8px">
+      <div class="row" style="margin-top:10px"><button class="btn gold" id="titleSave" style="flex:1">SET TITLE</button></div>
+      <p class="hint">Picking a state on the SEND tab resets the title automatically.</p>
+    </div>
+
+    <h2>Result card shows</h2>
+    <div class="card pad">
+      <select class="fld" id="miniMode">
+        <option value="both">Pick 3 + Pick 4 (123-4567)</option>
+        <option value="p3">Pick 3 only (123)</option>
+        <option value="p4">Pick 4 only (4567)</option>
+      </select>
+      <p class="hint">What goes in the small state cards on the sides of the board when you press SEND LIVE. The big card always shows both.</p>
+    </div>
+
+    <h2>New day</h2>
+    <div class="card pad">
+      <button class="btn danger" id="resetDay" style="width:100%">CLEAR ALL NUMBERS</button>
+      <p class="hint">Sets every small card back to --- and empties the big balls. Draw times stay.</p>
+    </div>
+  </section>
+
+  <!-- ======== COLORS ======== -->
+  <section id="t-colors">
+    <p class="hint" style="margin:0 0 4px">Tap a swatch to pick a colour — it changes on the board right away. The ↺ button puts that colour back to the original.</p>
+    <h2>Big card background</h2>
+    <div class="card pad">
+      <div class="row">
+        <input type="color" id="bgColor" value="#8a4a00">
+        <button class="btn gold" id="bgSave" style="flex:1">APPLY</button>
+        <button class="btn ghost" id="bgAuto">AUTO (by state)</button>
+      </div>
+    </div>
+
+    <div id="colorGroups"></div>
+    <button class="btn danger" id="colorsReset" style="width:100%;margin-top:6px">RESET ALL COLOURS</button>
+  </section>
+</main>
+
+<div class="bar on" id="bar-send"><div class="in">
+  <button class="btn ghost" id="switchOnly">SHOW STATE<br>ONLY</button>
+  <button class="btn send" id="sendBtn">SEND LIVE</button>
+</div></div>
+
+<script>
+/* ---------------- constants ---------------- */
+const DEFAULTS = {
+  'NEW YORK':  { color:'#17a2b8', theme:'newyork',   rows:[['---','14:30'],['---','17:30']] },
+  'FLORIDA':   { color:'#22b573', theme:'florida',   rows:[['---','12:59'],['---','15:59']] },
+  'GEORGIA':   { color:'#f03333', theme:'georgia',   rows:[['---','12:59'],['---','15:59']] },
+  'TENNESSEE': { color:'#2f80ff', theme:'tennessee', rows:[['---','12:59'],['---','14:59'],['---','17:59']] },
+  'TEXAS':     { color:'#8b2ff7', theme:'texas',     rows:[['---','11:00'],['---','14:00'],['---','17:00']] },
+  'NEW JERSEY':{ color:'#1f6feb', theme:'newjersey', rows:[['---','12:45'],['---','--:--']] },
+  'MARYLAND':  { color:'#22b573', theme:'maryland',  rows:[['---','12:58'],['---','19:58']] }
+};
+const ORDER = Object.keys(DEFAULTS);
+const CD_PRESETS = [5,10,15,20,30,45,60];
+const COLOR_GROUPS = [
+  ['Page', [['page','Page background','#e07b00']]],
+  ['Top bar', [['badge','Logo badge','#101c4a'],['gold','Gold accent (borders, logo text)','#f5b301'],['live','LIVE badge','#e8001d']]],
+  ['Big card', [['title','Title text','#ffffff'],['pill','Subtitle & time pills','#f5a623'],['ball3','Pick 3 colour','#2f80ff'],['ball4','Pick 4 colour','#22c55e'],['digit','Ball digits','#0a1a4a']]],
+  ['Small cards', [['numbg','Number box','#ffffff'],['numtxt','Number text','#101c4a']].concat(Object.keys(DEFAULTS).map(n => ['hdr:' + n, n + ' header', DEFAULTS[n].color]))],
+  ['Bottom & panels', [['panel','Dark panels (clock, bottom bar, cards)','#05081c'],['ticker','Banner text','#ffd34d'],['sub','Red button','#e61a1a']]]
+];
+
+/* ---------------- tiny helpers ---------------- */
+const $  = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const enc = encodeURIComponent;
+function el(tag, cls, txt){ const e = document.createElement(tag); if(cls) e.className = cls; if(txt != null) e.textContent = txt; return e; }
+function titleCase(s){ return s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()); }
+function arr(x){
+  if(Array.isArray(x)) return x;
+  if(x && typeof x === 'object') return Object.keys(x).sort((a,b)=>a-b).map(k => x[k]);
+  return [];
+}
+function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k) || 'null'); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+let toastT;
+function toast(msg, kind){
+  const t = $('#toast'); t.textContent = msg; t.className = 'show ' + (kind || '');
+  clearTimeout(toastT); toastT = setTimeout(() => { t.className = ''; }, 2600);
+}
+
+/* ---------------- connection ---------------- */
+const S = { url:'', ch:'awel1', R:null, net:null, seen:null, seenAt:0, pending:null, mini:'both' };
+(function loadCfg(){
+  const saved = lsGet('awelRemote') || {};
+  const qp = new URLSearchParams(location.search);
+  const PRESET = { url:'https://awel-board-default-rtdb.firebaseio.com', ch:'awel-3380ce0ba2' };   // already filled in for your board
+  S.url  = (qp.get('fb') || saved.url || PRESET.url).trim();
+  S.ch   = (qp.get('ch') || (saved.url ? saved.ch : PRESET.ch) || PRESET.ch).trim();
+  S.mini = saved.mini || 'both';
+  if(qp.get('fb')) lsSet('awelRemote', Object.assign({}, saved, { url:S.url, ch:S.ch }));
+})();
+function saveCfg(){ lsSet('awelRemote', { url:S.url, ch:S.ch, mini:S.mini }); }
+function nodeUrl(sub){ return S.url.replace(/\/+$/,'') + '/boards/' + enc(S.ch) + (sub || '') + '.json'; }
+async function req(method, sub, body){
+  const r = await fetch(nodeUrl(sub), { method, body: body === undefined ? undefined : JSON.stringify(body), cache:'no-store' });
+  if(!r.ok){ const e = new Error(r.status === 401 ? 'denied' : 'http ' + r.status); e.code = r.status; throw e; }
+  return r.json();
+}
+
+/* ---------------- state model ---------------- */
+function model(){
+  const states = {};
+  ORDER.forEach(n => { states[n] = DEFAULTS[n].rows.map(r => r.slice()); });
+  const rs = S.R && S.R.states;
+  if(rs) Object.keys(rs).forEach(n => {
+    const rows = arr(rs[n]).map(r => { const a = arr(r); return [a[0] != null ? String(a[0]) : '---', a[1] != null ? String(a[1]) : '--:--']; });
+    if(rows.length) states[n] = rows;
+  });
+  return states;
+}
+function stateNames(m){ return ORDER.filter(n => m[n]).concat(Object.keys(m).filter(n => !ORDER.includes(n))); }
+function colorOf(n){ return DEFAULTS[n] ? DEFAULTS[n].color : '#2a3f8f'; }
+function isEmpty(v){ return !/\d/.test(v || ''); }
+function parseNum(v){
+  let p3 = '', p4 = '';
+  (String(v || '').match(/\d+/g) || []).forEach(g => { if(g.length === 3) p3 = g; else if(g.length === 4) p4 = g; });
+  return { p3, p4 };
+}
+function fmtMini(p3, p4){
+  const v = S.mini === 'p3' ? p3 : S.mini === 'p4' ? p4 : [p3, p4].filter(Boolean).join('-');
+  return v || '---';
+}
+
+/* ---------------- sending ---------------- */
+function trackAck(ts){ S.pending = { ts, t0: Date.now(), shown:false }; }
+async function patchTop(obj){
+  const ts = Date.now();
+  await req('PATCH', '', Object.assign({}, obj, { ts, by:'phone' }));
+  trackAck(ts);
+  return ts;
+}
+async function ensureSeed(){
+  const cur = await req('GET', '/states');
+  if(cur == null){
+    const seed = {}; ORDER.forEach(n => { seed[n] = DEFAULTS[n].rows; });
+    await req('PUT', '/states', seed);
+  }
+}
+function needSetup(){
+  if(!S.url){ $('#setup').classList.add('on'); toast('Set up the connection first', 'warn'); window.scrollTo({top:0,behavior:'smooth'}); return true; }
+  return false;
+}
+async function guarded(fn, okMsg){
+  if(needSetup()) return;
+  try{ await fn(); if(okMsg) toast(okMsg, ''); pollNow(); }
+  catch(e){ toast(e.code === 401 ? 'Firebase says permission denied — check the rules' : 'Could not reach Firebase', 'bad'); }
+}
+
+/* ---- SEND tab ---- */
+const sel = { state:'FLORIDA', slot:0 };
+function renderStateChips(){
+  const box = $('#stateChips'); box.innerHTML = '';
+  stateNames(model()).forEach(n => {
+    const b = el('button', 'chip state' + (n === sel.state ? ' on' : ''), n);
+    b.style.background = n === sel.state ? colorOf(n) : '';
+    b.style.borderColor = n === sel.state ? '#fff' : colorOf(n);
+    b.onclick = () => pickState(n);
+    box.append(b);
+  });
+}
+function renderSlotChips(){
+  const rows = model()[sel.state] || [];
+  const box = $('#slotChips'); box.innerHTML = '';
+  rows.forEach((r, i) => {
+    const filled = !isEmpty(r[0]);
+    const b = el('button', 'chip slot' + (i === sel.slot ? ' on' : '') + (filled ? ' filled' : ''), r[1]);
+    b.append(el('small', '', filled ? r[0] : 'empty'));
+    b.onclick = () => { sel.slot = i; fillInputsFromSlot(); renderSlotChips(); };
+    box.append(b);
+  });
+}
+function pickState(n){
+  sel.state = n;
+  const rows = model()[n] || [];
+  const firstEmpty = rows.findIndex(r => isEmpty(r[0]));
+  sel.slot = firstEmpty >= 0 ? firstEmpty : Math.max(0, rows.length - 1);
+  renderStateChips(); renderSlotChips(); fillInputsFromSlot();
+}
+function fillInputsFromSlot(){
+  const row = (model()[sel.state] || [])[sel.slot];
+  const p = parseNum(row ? row[0] : '');
+  $('#p3').value = p.p3; $('#p4').value = p.p4;
+}
+function digitsOnly(inp, max, next){
+  inp.addEventListener('input', () => {
+    inp.value = inp.value.replace(/\D/g, '').slice(0, max);
+    if(next && inp.value.length === max) next.focus();
+  });
+  inp.addEventListener('focus', () => setTimeout(() => inp.select(), 0));
+}
+digitsOnly($('#p3'), 3, $('#p4')); digitsOnly($('#p4'), 4, null);
+
+function featuredFor(st, p3, p4){
+  const th = DEFAULTS[st] ? DEFAULTS[st].theme : 'florida';
+  return { title:'REZILTA ' + st, sub: titleCase(st) + ' Result', theme: th, p3, p4 };
+}
+$('#sendBtn').onclick = () => {
+  const p3 = $('#p3').value, p4 = $('#p4').value;
+  if(!p3 && !p4){ toast('Type the numbers first', 'warn'); return; }
+  if((p3 && p3.length !== 3) || (p4 && p4.length !== 4)){ toast('Pick 3 needs 3 digits, Pick 4 needs 4', 'warn'); return; }
+  guarded(async () => {
+    await ensureSeed();
+    await Promise.all([
+      req('PATCH', '/featured', featuredFor(sel.state, p3, p4)),
+      req('PUT', '/states/' + enc(sel.state) + '/' + sel.slot + '/0', fmtMini(p3, p4))
+    ]);
+    await patchTop({});
+  }, 'Sent… waiting for the board');
+};
+$('#switchOnly').onclick = () => guarded(async () => {
+  await req('PATCH', '/featured', featuredFor(sel.state, '', ''));
+  await patchTop({});
+}, 'Switching screen…');
+$('#clearDraw').onclick = () => {
+  if(!confirm('Clear ' + sel.state + ' ' + ((model()[sel.state] || [])[sel.slot] || [])[1] + '?')) return;
+  guarded(async () => {
+    await ensureSeed();
+    await Promise.all([
+      req('PUT', '/states/' + enc(sel.state) + '/' + sel.slot + '/0', '---'),
+      req('PATCH', '/featured', featuredFor(sel.state, '', ''))
+    ]);
+    $('#p3').value = ''; $('#p4').value = '';
+    await patchTop({});
+  }, 'Cleared');
+};
+
+/* ---- RESULTS tab ---- */
+let resSig = '';
+function buildResults(){
+  const m = model(), names = stateNames(m);
+  const sig = names.map(n => n + ':' + m[n].length).join('|');
+  if(sig === resSig) return;
+  resSig = sig;
+  const box = $('#results'); box.innerHTML = '';
+  names.forEach(n => {
+    const card = el('div', 'card'); const h = el('div', 'rhead', n); h.style.background = colorOf(n); card.append(h);
+    m[n].forEach((row, i) => {
+      const r = el('div', 'rrow');
+      const num = el('input', 'fld num'); num.dataset.s = n; num.dataset.i = i; num.dataset.c = '0';
+      num.autocomplete = 'off'; num.spellcheck = false;
+      const tm = el('input', 'fld time'); tm.dataset.s = n; tm.dataset.i = i; tm.dataset.c = '1';
+      tm.autocomplete = 'off'; tm.spellcheck = false;
+      r.append(num, tm); card.append(r);
+    });
+    box.append(card);
+  });
+}
+function fillResults(){
+  const m = model();
+  $$('#results input').forEach(inp => {
+    if(document.activeElement === inp) return;
+    const v = ((m[inp.dataset.s] || [])[+inp.dataset.i] || [])[+inp.dataset.c];
+    if(v != null && inp.value !== v) inp.value = v;
+  });
+}
+const rowTimers = {};
+$('#results').addEventListener('input', e => {
+  const inp = e.target; if(!inp.dataset.s) return;
+  const key = inp.dataset.s + '|' + inp.dataset.i;
+  clearTimeout(rowTimers[key]);
+  rowTimers[key] = setTimeout(() => {
+    const pair = $$('#results input').filter(x => x.dataset.s === inp.dataset.s && x.dataset.i === inp.dataset.i);
+    const num = pair.find(x => x.dataset.c === '0').value.trim() || '---';
+    const tm  = pair.find(x => x.dataset.c === '1').value.trim() || '--:--';
+    guarded(async () => {
+      await ensureSeed();
+      await req('PATCH', '/states/' + enc(inp.dataset.s) + '/' + inp.dataset.i, { '0': num, '1': tm });
+      await patchTop({});
+    });
+  }, 500);
+});
+
+/* ---- BOARD tab ---- */
+$('#cdChips').append(...CD_PRESETS.map(m => { const b = el('button', 'chip', m + ' min'); b.onclick = () => startCd(m); return b; }));
+function startCd(mins){
+  if(!(mins > 0)){ toast('Enter minutes', 'warn'); return; }
+  guarded(() => patchTop({ cdEnd: Date.now() + mins * 60000 }), 'Countdown started: ' + mins + ' min');
+}
+$('#cdStart').onclick = () => startCd(parseInt($('#cdMin').value, 10));
+$('#cdStop').onclick  = () => guarded(() => patchTop({ cdEnd: 0 }), 'Countdown cleared');
+$('#tickerSave').onclick = () => guarded(() => patchTop({ ticker: $('#tickerTxt').value }), 'Banner sent');
+$('#subSave').onclick    = () => guarded(() => patchTop({ subtxt: $('#subTxt').value }), 'Button text sent');
+$('#titleSave').onclick  = () => guarded(async () => {
+  await req('PATCH', '/featured', { title: $('#titleTxt').value, sub: $('#subTitleTxt').value });
+  await patchTop({});
+}, 'Title sent');
+$('#bgSave').onclick = () => guarded(() => patchTop({ bg: $('#bgColor').value }), 'Colour sent');
+$('#bgAuto').onclick = () => guarded(() => patchTop({ bg: '' }), 'Colour back to automatic');
+$('#miniMode').value = S.mini;
+$('#miniMode').onchange = e => { S.mini = e.target.value; saveCfg(); toast('Saved', 'ok'); };
+$('#resetDay').onclick = () => {
+  if(!confirm('Clear ALL numbers on the board?')) return;
+  guarded(async () => {
+    const m = model(), blank = {};
+    stateNames(m).forEach(n => { blank[n] = m[n].map(r => ['---', r[1]]); });
+    await Promise.all([ req('PUT', '/states', blank), req('PATCH', '/featured', { p3:'', p4:'' }) ]);
+    $('#p3').value = ''; $('#p4').value = '';
+    await patchTop({});
+  }, 'Board cleared');
+};
+let boardFieldsFilled = false;
+function fillBoardFields(){
+  const R = S.R; if(!R) return;
+  const setIf = (id, v) => { const i = $(id); if(v != null && document.activeElement !== i && !i.dataset.dirty) i.value = v; };
+  setIf('#tickerTxt', R.ticker); setIf('#subTxt', R.subtxt);
+  if(R.featured){ setIf('#titleTxt', R.featured.title); setIf('#subTitleTxt', R.featured.sub); }
+  if(R.bg && /^#[0-9a-f]{6}$/i.test(R.bg) && document.activeElement !== $('#bgColor')) $('#bgColor').value = R.bg;
+}
+['#tickerTxt','#subTxt','#titleTxt','#subTitleTxt'].forEach(id => $(id).addEventListener('input', e => { e.target.dataset.dirty = '1'; }));
+['#tickerSave','#subSave','#titleSave'].forEach(id => $(id).addEventListener('click', () => {
+  ['#tickerTxt','#subTxt','#titleTxt','#subTitleTxt'].forEach(i => delete $(i).dataset.dirty);
+}));
+setInterval(() => {
+  const el = $('#cdPrev'), end = S.R && S.R.cdEnd;
+  if(typeof end === 'number' && end > Date.now()){
+    const s = Math.round((end - Date.now()) / 1000);
+    el.textContent = String(Math.floor(s / 60)).padStart(2,'0') + ':' + String(s % 60).padStart(2,'0'); el.classList.remove('done');
+  } else if(typeof end === 'number' && end > 0 && Date.now() - end < 120000){ el.textContent = 'LIVE!'; el.classList.add('done'); }
+  else { el.textContent = '--:--'; el.classList.remove('done'); }
+}, 500);
+
+/* ---- COLORS tab ---- */
+function buildColors(){
+  const box = $('#colorGroups'); if(box.children.length) return;
+  COLOR_GROUPS.forEach(([title, rows]) => {
+    box.append(el('h2', '', title));
+    const card = el('div', 'card');
+    rows.forEach(([k, label, def]) => {
+      const r = el('div', 'crow'); r.append(el('span', 'clab', label));
+      const inp = el('input'); inp.type = 'color'; inp.value = def; inp.dataset.k = k; inp.dataset.def = def;
+      const rst = el('button', 'rst', '↺'); rst.dataset.k = k; rst.title = 'Back to original';
+      r.append(inp, rst); card.append(r);
+    });
+    box.append(card);
+  });
+}
+function colorPath(k){ return k.startsWith('hdr:') ? ['/colors/hdr', k.slice(4)] : ['/colors', k]; }
+function colorVal(k){
+  const c = S.R && S.R.colors; if(!c) return null;
+  return k.startsWith('hdr:') ? (c.hdr && c.hdr[k.slice(4)]) || null : c[k] || null;
+}
+function fillColors(){
+  $$('#colorGroups input').forEach(inp => {
+    const v = colorVal(inp.dataset.k);
+    if(document.activeElement !== inp) inp.value = /^#[0-9a-f]{6}$/i.test(v || '') ? v : inp.dataset.def;
+    inp.closest('.crow').querySelector('.rst').classList.toggle('on', !!v);
+  });
+}
+const colorTimers = {};
+$('#colorGroups').addEventListener('input', e => {
+  const inp = e.target; if(inp.type !== 'color') return;
+  const k = inp.dataset.k;
+  clearTimeout(colorTimers[k]);
+  colorTimers[k] = setTimeout(() => guarded(async () => {
+    const [path, key] = colorPath(k);
+    await req('PATCH', path, { [key]: inp.value });
+    await patchTop({});
+  }), 250);
+});
+$('#colorGroups').addEventListener('click', e => {
+  const b = e.target.closest('.rst'); if(!b) return;
+  const [path, key] = colorPath(b.dataset.k);
+  guarded(async () => { await req('DELETE', path + '/' + enc(key)); await patchTop({}); }, 'Colour reset');
+});
+$('#colorsReset').onclick = () => {
+  if(!confirm('Put ALL colours back to the original?')) return;
+  guarded(async () => { await req('DELETE', '/colors'); await patchTop({ bg: '' }); }, 'All colours reset');
+};
+
+/* ---------------- polling + status ---------------- */
+let pollBusy = false;
+async function poll(){
+  if(!S.url || pollBusy) return;
+  pollBusy = true;
+  try{
+    S.R = await req('GET', '');
+    S.net = 'ok';
+    const seen = S.R && S.R.seen;
+    if(seen !== S.seen){ S.seen = seen; S.seenAt = Date.now(); }
+    if(S.pending && S.R && S.R.ack === S.pending.ts && !S.pending.shown){ S.pending.shown = true; toast('On screen ✓', 'ok'); }
+    else if(S.pending && !S.pending.shown && Date.now() - S.pending.t0 > 9000){ S.pending.shown = true; toast('Board has not confirmed — is OBS open?', 'warn'); }
+    renderAll(false);
+  }catch(e){ S.net = e.code === 401 ? 'denied' : 'down'; }
+  pollBusy = false;
+  renderStatus();
+}
+function pollNow(){ setTimeout(poll, 250); }
+function renderStatus(){
+  const p = $('#status'), t = $('#statusTxt');
+  let cls = '', txt = '';
+  if(!S.url){ txt = 'Not set up'; cls = 'bad'; }
+  else if(S.net === 'denied'){ txt = 'Permission denied'; cls = 'bad'; }
+  else if(S.net === 'down'){ txt = 'No connection'; cls = 'bad'; }
+  else if(S.net == null){ txt = 'Connecting…'; cls = 'warn'; }
+  else if(Date.now() - S.seenAt < 25000 && S.seen != null){ txt = 'Board online'; cls = 'ok'; }
+  else { txt = 'Board not seen'; cls = 'warn'; }
+  p.className = 'pill ' + cls; t.textContent = txt;
+}
+setInterval(renderStatus, 3000);
+function renderAll(first){
+  renderStateChips(); renderSlotChips();
+  buildResults(); fillResults(); fillBoardFields(); buildColors(); fillColors();
+  if(first) fillInputsFromSlot();
+}
+
+/* ---------------- tabs, setup ---------------- */
+$$('#tabs button').forEach(b => b.onclick = () => {
+  $$('#tabs button').forEach(x => x.classList.toggle('on', x === b));
+  $$('section').forEach(s => s.classList.toggle('on', s.id === 't-' + b.dataset.t));
+  $('#bar-send').classList.toggle('on', b.dataset.t === 'send');
+  window.scrollTo({ top:0 });
+});
+$('#gear').onclick = () => {
+  $('#fbUrl').value = S.url; $('#fbCh').value = S.ch;
+  $('#setup').classList.toggle('on');
+};
+$('#saveSetup').onclick = () => {
+  const u = $('#fbUrl').value.trim().replace(/\/+$/, '');
+  if(!/^https:\/\/.+/.test(u)){ toast('The URL must start with https://', 'warn'); return; }
+  S.url = u; S.ch = ($('#fbCh').value.trim() || 'awel1'); S.net = null; S.R = null; resSig = '';
+  saveCfg(); $('#setup').classList.remove('on'); toast('Connecting…', ''); renderStatus(); poll();
+};
+
+/* ---------------- go ---------------- */
+if(!S.url){ $('#fbUrl').value = ''; $('#fbCh').value = S.ch; $('#setup').classList.add('on'); }
+pickState('FLORIDA'); renderAll(true); renderStatus();
+poll(); setInterval(poll, 2000);
+</script>
+</body>
+</html>
